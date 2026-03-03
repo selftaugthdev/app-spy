@@ -155,13 +155,16 @@ export async function synthesize(identity, collectorData) {
     try {
       const stream = await client.messages.stream({
         model,
-        max_tokens: 8192,
+        max_tokens: 16000,
         thinking,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userPrompt }],
       });
       message = await stream.finalMessage();
       if (i > 0) console.log(`   ↳ Synthesis succeeded on attempt ${i + 1} using ${model}`);
+      if (message.stop_reason !== 'end_turn') {
+        console.warn(`   ↳ Unexpected stop_reason: ${message.stop_reason}`);
+      }
       break;
     } catch (err) {
       const isOverloaded = err.status === 529 || (err.message && err.message.includes('overloaded'));
