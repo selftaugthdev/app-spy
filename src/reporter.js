@@ -19,20 +19,26 @@ import puppeteer from 'puppeteer';
  * @returns {Promise<{mdPath: string, jsonPath: string}>}
  */
 export async function generateReport(report, appName) {
-  const date = new Date().toISOString().split('T')[0];
-  const safeName = appName.replace(/[^a-zA-Z0-9]/g, '');
-  const baseName = `${safeName}_${date}`;
+  const now = new Date();
+  const date = now.toISOString().split('T')[0];
+  const time = now.toTimeString().slice(0, 5).replace(':', '-'); // HH-MM
 
-  await mkdir('reports', { recursive: true });
+  // Folder: core app name only, drop subtitle after colon/dash
+  const coreName = appName.split(/[:\-–|]/)[0].trim();
+  const folderName = coreName.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '');
+  const baseName = `${folderName}_${date}_${time}`;
 
-  const jsonPath = join('reports', `${baseName}.json`);
-  const mdPath = join('reports', `${baseName}.md`);
+  const dir = join('reports', folderName);
+  await mkdir(dir, { recursive: true });
+
+  const jsonPath = join(dir, `${baseName}.json`);
+  const mdPath = join(dir, `${baseName}.md`);
 
   const markdown = toMarkdown(report);
   await writeFile(jsonPath, JSON.stringify(report, null, 2), 'utf-8');
   await writeFile(mdPath, markdown, 'utf-8');
 
-  const pdfPath = join('reports', `${baseName}.pdf`);
+  const pdfPath = join(dir, `${baseName}.pdf`);
   await writePdf(markdown, pdfPath);
 
   return { mdPath, jsonPath, pdfPath };
