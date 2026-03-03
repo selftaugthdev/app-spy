@@ -23,29 +23,41 @@ export default async function collect(identity) {
 
   const results = {};
 
-  // Instagram
+  // Instagram — use resolved handle, or fall back to guessing from app name
   const igHandle = identity.handles?.instagram;
-  if (igHandle) {
+  const igCandidates = igHandle
+    ? [normalizeHandle(igHandle, 'instagram')]
+    : guessUsernames(identity.appName);
+
+  for (const username of igCandidates) {
     try {
-      const username = normalizeHandle(igHandle, 'instagram');
       const data = await runInstagramScraper(username, token);
-      if (data) results.instagram = data;
-      console.log(`   Apify/Instagram: @${username} — ${data?.followers ?? 'n/a'} followers`);
+      if (data?.followers != null) {
+        results.instagram = data;
+        console.log(`   Apify/Instagram: @${username} — ${data.followers.toLocaleString()} followers`);
+        break;
+      }
     } catch (err) {
-      console.warn(`⚠️  Apify/Instagram — ${err.message}`);
+      console.warn(`⚠️  Apify/Instagram @${username} — ${err.message}`);
     }
   }
 
-  // TikTok
+  // TikTok — use resolved handle, or fall back to guessing from app name
   const ttHandle = identity.handles?.tiktok;
-  if (ttHandle) {
+  const ttCandidates = ttHandle
+    ? [normalizeHandle(ttHandle, 'tiktok')]
+    : guessUsernames(identity.appName);
+
+  for (const username of ttCandidates) {
     try {
-      const username = normalizeHandle(ttHandle, 'tiktok');
       const data = await runTikTokScraper(username, token);
-      if (data) results.tiktok = data;
-      console.log(`   Apify/TikTok: @${username} — ${data?.followers ?? 'n/a'} followers`);
+      if (data?.followers != null) {
+        results.tiktok = data;
+        console.log(`   Apify/TikTok: @${username} — ${data.followers.toLocaleString()} followers`);
+        break;
+      }
     } catch (err) {
-      console.warn(`⚠️  Apify/TikTok — ${err.message}`);
+      console.warn(`⚠️  Apify/TikTok @${username} — ${err.message}`);
     }
   }
 
@@ -150,6 +162,28 @@ async function runActor(actorId, input, token) {
 // ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
+
+/**
+ * Generate candidate usernames from an app name for profile discovery.
+ * e.g. "Migraine Buddy: Track Headache" → ["migrainebuddy", "migraine.buddy", "migraine_buddy"]
+ */
+function guessUsernames(appName) {
+  // Use only the first two words to avoid subtitle noise ("Track Headache", "- Free", etc.)
+  const base = appName
+    .split(/[:\-–|]/)[0]  // drop subtitles after colon/dash
+    .trim()
+    .split(/\s+/)
+    .slice(0, 3)
+    .join(' ');
+
+  const candidates = [
+    base.toLowerCase().replace(/[^a-z0-9]/g, ''),          // migrainebuddy
+    base.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, ''),  // migraine.buddy
+    base.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),  // migraine_buddy
+  ];
+
+  return [...new Set(candidates)];
+}
 
 function normalizeHandle(handle, platform) {
   let h = handle
