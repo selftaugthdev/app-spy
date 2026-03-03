@@ -167,9 +167,10 @@ async function run() {
   // 4. Generate report files
   console.log('');
   try {
-    const { mdPath, jsonPath } = await generateReport(report, identity.appName);
+    const { mdPath, jsonPath, pdfPath } = await generateReport(report, identity.appName);
     console.log(`📄 Report saved to ${mdPath}`);
     console.log(`📊 JSON saved to  ${jsonPath}`);
+    console.log(`📋 PDF saved to   ${pdfPath}`);
   } catch (err) {
     console.error(`❌ Report generation failed: ${err.message}`);
     process.exit(1);
