@@ -137,21 +137,38 @@ export async function synthesize(identity, collectorData) {
   ].join('\n');
 
   // Stream to avoid timeout on large outputs; use adaptive thinking for
-  // deeper competitive analysis
-  const stream = await client.messages.stream({
-    model: 'claude-opus-4-6',
-    max_tokens: 8192,
-    thinking: { type: 'adaptive' },
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: 'user',
-        content: userPrompt,
-      },
-    ],
-  });
+  // deeper competitive analysis. Retry up to 3 times on overloaded errors.
+  // Retry up to 3 times on overloaded errors; fall back to sonnet on attempt 3.
+  const ATTEMPTS = [
+    { model: 'claude-opus-4-6',   thinking: { type: 'adaptive' }, delay: 0 },
+    { model: 'claude-opus-4-6',   thinking: { type: 'adaptive' }, delay: 20000 },
+    { model: 'claude-sonnet-4-6', thinking: { type: 'adaptive' }, delay: 10000 },
+  ];
 
-  const message = await stream.finalMessage();
+  let message;
+  for (let i = 0; i < ATTEMPTS.length; i++) {
+    const { model, thinking, delay } = ATTEMPTS[i];
+    if (delay > 0) {
+      console.log(`   ↳ Claude overloaded, retrying in ${delay / 1000}s (attempt ${i + 1}/${ATTEMPTS.length}, model: ${model})...`);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+    try {
+      const stream = await client.messages.stream({
+        model,
+        max_tokens: 8192,
+        thinking,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userPrompt }],
+      });
+      message = await stream.finalMessage();
+      if (i > 0) console.log(`   ↳ Synthesis succeeded on attempt ${i + 1} using ${model}`);
+      break;
+    } catch (err) {
+      const isOverloaded = err.status === 529 || (err.message && err.message.includes('overloaded'));
+      if (isOverloaded && i < ATTEMPTS.length - 1) continue;
+      throw err;
+    }
+  }
 
   // Filter to text blocks only (skip thinking blocks)
   const text = message.content

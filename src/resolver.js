@@ -51,6 +51,7 @@ export async function resolveIdentity(input) {
     developer: appData.developer,
     website: appData.website,
     appStoreUrl: appData.appStoreUrl,
+    appId: appData.appId,
     handles,
   };
 }

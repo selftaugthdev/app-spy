@@ -28,7 +28,7 @@ export default async function collect(identity) {
   let browser;
   try {
     browser = await puppeteer.launch({
-      headless: 'new',
+      headless: true,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -47,7 +47,7 @@ export default async function collect(identity) {
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 45000 });
 
     // Give React time to hydrate
-    await page.waitForTimeout(4000);
+    await new Promise((r) => setTimeout(r, 4000));
 
     // Extract all visible text from the page
     const pageText = await page.evaluate(() => document.body.innerText || '');
