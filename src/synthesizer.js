@@ -1,7 +1,7 @@
 /**
  * synthesizer.js — Claude API Synthesis Layer
  *
- * Takes all raw collector data and uses Claude (claude-opus-4-6) to produce
+ * Takes all raw collector data and uses Claude (claude-sonnet-4-6) to produce
  * a structured JSON intelligence report. Streams the response to handle
  * large outputs without hitting request timeouts.
  *
@@ -140,9 +140,9 @@ export async function synthesize(identity, collectorData) {
   // deeper competitive analysis. Retry up to 3 times on overloaded errors.
   // Retry up to 3 times on overloaded errors; fall back to sonnet on attempt 3.
   const ATTEMPTS = [
-    { model: 'claude-opus-4-6',   thinking: { type: 'adaptive' }, delay: 0 },
-    { model: 'claude-opus-4-6',   thinking: { type: 'adaptive' }, delay: 20000 },
+    { model: 'claude-sonnet-4-6', thinking: { type: 'adaptive' }, delay: 0 },
     { model: 'claude-sonnet-4-6', thinking: { type: 'adaptive' }, delay: 10000 },
+    { model: 'claude-sonnet-4-6', thinking: { type: 'adaptive' }, delay: 20000 },
   ];
 
   let message;

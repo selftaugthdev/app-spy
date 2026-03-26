@@ -153,7 +153,7 @@ async function run() {
 
     // 3. Synthesize with Claude
     console.log('');
-    console.log('🧠 Synthesizing report with Claude (claude-opus-4-6)...');
+    console.log('🧠 Synthesizing report with Claude (claude-sonnet-4-6)...');
 
     try {
       report = await synthesize(identity, collectorData);
